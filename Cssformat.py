@@ -4,7 +4,7 @@ import tokenize
 import sys, os
 
 class PreSaveFormatListner(sublime_plugin.EventListener):
-    """Event listener to run JsFormat during the presave event"""
+    """Event listener to run CssFormat during the presave event"""
     def on_pre_save(self, view):
         fName = view.file_name()
         vSettings = view.settings()
@@ -31,7 +31,7 @@ class CssformatCommand(sublime_plugin.TextCommand):
         line = ""
 
         curr_view = self.view
-        
+
         result = []
         indentedLines = []
         flatLines = []
