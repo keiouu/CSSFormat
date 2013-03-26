@@ -1,7 +1,26 @@
 import sublime, sublime_plugin
 import tokenize
 #from tokenize import tokenize, untokenize, NUMBER, STRING, NAME, OP
-import sys
+import sys, os
+
+class PreSaveFormatListner(sublime_plugin.EventListener):
+    """Event listener to run JsFormat during the presave event"""
+    def on_pre_save(self, view):
+        fName = view.file_name()
+        vSettings = view.settings()
+        syntaxPath = vSettings.get('syntax')
+        syntax = ""
+        ext = ""
+
+        if (fName != None): # file exists, pull syntax type from extension
+            ext = os.path.splitext(fName)[1][1:]
+        if (syntaxPath != None):
+            syntax = os.path.splitext(syntaxPath)[0].split('/')[-1].lower()
+
+        formatFile = ext in ['css'] or "css" in syntax
+
+        if (formatFile):
+            view.run_command("cssformat")
 
 class CssformatCommand(sublime_plugin.TextCommand):
     finalText = ""
