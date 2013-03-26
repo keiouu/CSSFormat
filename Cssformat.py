@@ -27,13 +27,11 @@ class CssformatCommand(sublime_plugin.TextCommand):
     line = ""
 
     def run(self, edit):
-        #sublime.status_message('Starting')
+        finalText = ""
+        line = ""
+
         curr_view = self.view
         
-        file_name = curr_view.file_name()
-
-        #print('Here is the file_name -- ', file_name)
-        file = open(file_name)
         result = []
         indentedLines = []
         flatLines = []
@@ -41,8 +39,10 @@ class CssformatCommand(sublime_plugin.TextCommand):
         multilineText = []
 
         def getTheLines():
-            for line in file:
-                result.append(line)    
+            for x in curr_view.substr(sublime.Region(0, curr_view.size())).split("\n"):
+                result.append(x)
+            if len(result[-1].strip()) == 0:
+                result.pop()
 
         def flattenTheText():
             counter = 0
@@ -50,8 +50,6 @@ class CssformatCommand(sublime_plugin.TextCommand):
                 self.line = indentedLines[counter]
 
                 #remove all strange characters from the begining of the line
-                # while self.line.startswith("\xef") or self.line.startswith("\xbb") or self.line.startswith("\xbf"):
-                #     self.line = self.line[1:len(self.line)]
                 while self.line[0] > '~':
                     self.line = self.line[1:len(self.line)]
 
@@ -342,58 +340,40 @@ class CssformatCommand(sublime_plugin.TextCommand):
                     # Now, sort the list
                     listOfParams = sortThis(listOfParams)
 
-                    if paramCounter > 3:
-                        # get line's indentations
-                        tabCount = 0
-                        tabs = ""
-                        while declaration[tabCount] == '\t':
-                            tabCount += 1
-                            tabs += '\t'
+                    # get line's indentations
+                    tabCount = 0
+                    tabs = ""
+                    while declaration[tabCount] == '\t':
+                        tabCount += 1
+                        tabs += '\t'
 
-                        for param in listOfParams:
-                            # fix lines with comments at the end
-                            if param.endswith("*/;") and (not param.startswith("/*")):
-                                # print 'found a param that ends with a comment **************'
-                                
-                                #let's start by removing the ending semicolon
-                                param = param[0:len(param)-1]
+                    for param in listOfParams:
+                        # fix lines with comments at the end
+                        if param.endswith("*/;") and (not param.startswith("/*")):
+                            # print 'found a param that ends with a comment **************'
+                            
+                            #let's start by removing the ending semicolon
+                            param = param[0:len(param)-1]
+                            try:
+                                startIndex = param.index("/*")
+                            except Exception, e:
+                                startIndex = -1
+
+                            # first, remove extra spaces
+                            while param[startIndex - 1] == ' ':
+                                param = param[0:startIndex - 1] + param[startIndex:len(param)]
                                 try:
                                     startIndex = param.index("/*")
                                 except Exception, e:
                                     startIndex = -1
 
-                                # first, remove extra spaces
-                                while param[startIndex - 1] == ' ':
-                                    param = param[0:startIndex - 1] + param[startIndex:len(param)]
-                                    try:
-                                        startIndex = param.index("/*")
-                                    except Exception, e:
-                                        startIndex = -1
+                            # place semicolon back in
+                            param = param[0:startIndex] + '; ' + param[startIndex:len(param)]
 
-                                # place semicolon back in
-                                param = param[0:startIndex] + '; ' + param[startIndex:len(param)]
+                        displayLine += tabs + '\t' + param + '\n'
 
-                            displayLine += tabs + '\t' + param + '\n'
+                    multilineText.append(declaration + displayLine + tabs + '}\n')
 
-                        multilineText.append(declaration + displayLine + tabs + '}\n')
-
-                    else :
-                        displayLine = ""
-                        #start with removing tailing spaces
-                        while declaration.endswith(' '):
-                            declaration = declaration[0:len(declaration)-1]
-
-                        multilineText.append(declaration[0:len(declaration)-1] + ' ')
-
-                        for param in listOfParams:
-                            while param.startswith(' '):
-                                param = param[1:len(param)]
-                            while param.endswith(' '):
-                                param = param[0:len(param) - 1]
-
-                            displayLine += param + ' '
-
-                        multilineText.append(displayLine + '}\n')
                 else:
                     # check for lines starting with @
                     if line.startswith('}'):
@@ -416,14 +396,7 @@ class CssformatCommand(sublime_plugin.TextCommand):
         flattenTheText()
         addSpaces()
         toMultipleLines()
-        # print spacedLines
-        # print len(spacedLines)
-        # print '---------------------------------------'
-        # print multilineText
-        # print len(multilineText)
 
-        # target = curr_view.text_point(0, 0)
-        # self.view.show(target)
         self.view.sel().clear()
         fileSize = self.view.size()
 
